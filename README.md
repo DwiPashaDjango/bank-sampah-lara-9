@@ -1,6 +1,3 @@
-## Instalasi
-- atau clone : git clone https://github.com/rahmathidayat9/laraschool
-
 ## Setup
 - buka direktori project di terminal anda.
 - ketikan command : cp .env.example .env (copy paste file .env.example)
