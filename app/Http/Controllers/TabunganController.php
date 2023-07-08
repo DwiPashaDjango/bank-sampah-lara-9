@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BalanceWithdrawal;
+use App\Models\SaldoNasabah;
 use App\Models\Tabungan;
+use App\Models\User;
 use Carbon\Carbon;
 use Facade\Ignition\Tabs\Tab;
 use Illuminate\Http\Request;
@@ -15,11 +18,28 @@ class TabunganController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        $data = Tabungan::with('user')->where('users_id', '=', Auth::user()->id)->get();
-        $dataAdmin = Tabungan::with('user')->get();
-        return view('tabungan.index', compact('data', 'dataAdmin'));
+        $tanggal = $request->input('tanggal');
+        $bulan = $request->input('bulan');
+
+        if ($tanggal && $bulan) {
+            $data = Tabungan::with('user')->where('users_id', '=', Auth::user()->id)->whereMonth('tgl_nabung', $bulan)->whereDay('tgl_nabung', $tanggal)->get();
+            $dataAdmin = Tabungan::with('user')->whereMonth('tgl_nabung', $bulan)->whereDay('tgl_nabung', $tanggal)->get();
+            $saldoUser = User::with('total_saldo')->where('id', '=', Auth::user()->id)->get();
+            $user = User::orderBy('id', 'desc')->where('role', '=', 'guest')->get(['id', 'name']);
+            $riwayat_penarikan = BalanceWithdrawal::with('user', 'saldo')->orderBy('id', 'desc')->get();
+        } else {
+            $data = Tabungan::with('user')->where('users_id', '=', Auth::user()->id)->get();
+            $dataAdmin = Tabungan::with('user')->get();
+            $saldoUser = User::with('total_saldo')->where('id', '=', Auth::user()->id)->get();
+            $user = User::orderBy('id', 'desc')->where('role', '=', 'guest')->get(['id', 'name']);
+            $riwayat_penarikan = BalanceWithdrawal::with('user', 'saldo')->orderBy('id', 'desc')->get();
+            $tanggal = $request->input('tanggal');
+            $bulan = $request->input('bulan');
+        }
+
+        return view('tabungan.index', compact('data', 'dataAdmin', 'saldoUser', 'user', 'riwayat_penarikan'));
     }
 
     /**
@@ -52,14 +72,28 @@ class TabunganController extends Controller
             'saldo.required' => 'Saldo tidak boleh kosong'
         ]);
 
-        $data = Tabungan::create([
-            'users_id' => Auth::user()->id,
+        $usersId = Auth::user()->id;
+
+        $grand = SaldoNasabah::where('users_id', '=', Auth::user()->id)->first();
+
+        Tabungan::create([
+            'users_id' => $usersId,
             'tgl_nabung' => Carbon::now(),
             'jml_sampah' => $request->jml_sampah,
             'debit' => $request->debit,
             'kredit' => $request->kredit,
             'saldo' => $request->saldo
         ]);
+
+        if ($grand) {
+            $grand->total_saldo = $grand->total_saldo + $request->saldo;
+            $grand->save();
+        } else {
+            SaldoNasabah::create([
+                'users_id' => $usersId,
+                'total_saldo' => $request->saldo,
+            ]);
+        }
         return redirect()->route('tabungan.index')->with(['message' => 'Berhasil Menambahkan Tabungan']);
     }
 
@@ -105,5 +139,47 @@ class TabunganController extends Controller
     {
         $data = Tabungan::with('user')->get();
         return view('tabungan.cetakAll', compact('data'));
+    }
+
+    public function getSaldoUser($id)
+    {
+        $data = SaldoNasabah::with('user')->where('users_id', '=', $id)->get();
+        foreach ($data as $value) {
+            $value->total_saldo = number_format($value->total_saldo, 0, '', '.');
+        }
+        return response()->json($data);
+    }
+
+    public function tarikSaldo(Request $request)
+    {
+        $request->validate([
+            'users_id' => 'required',
+            'amount_withdrawn' => 'required',
+        ]);
+
+        $tarikSaldo = str_replace('.', '', $request->amount_withdrawn);
+
+        $saldo = SaldoNasabah::with('user')->where('users_id', '=', $request->users_id)->first();
+
+        if ($tarikSaldo > $saldo->total_saldo) {
+            return redirect('/tabungan')->with(['failed' => 'Saldo Tabungan ' . $saldo->user->name . ' Kurang.']);
+        }
+
+        $saldo->total_saldo -= $tarikSaldo;
+        $saldo->save();
+
+        $balance_withdrawn = BalanceWithdrawal::create([
+            'users_id' => $request->users_id,
+            'saldo_id' => $saldo->id,
+            'amount_withdrawn' => str_replace('.', '', $request->amount_withdrawn)
+        ]);
+
+        return redirect('/admin/saldouser/' . $balance_withdrawn->id . '/cetak-resi');
+    }
+
+    public function cetak_withdrawn($id)
+    {
+        $data = BalanceWithdrawal::with('user', 'saldo')->find($id);
+        return view('tabungan.cetak_resi', compact('data'));
     }
 }

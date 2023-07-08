@@ -64,7 +64,7 @@ Route::get('/pengumuman/{pengumuman:slug}', [PengumumanController::class, 'show'
 Route::get('/data_transaksi', [DataTransaksiController::class, 'index'])->name('data_transaksi');
 Route::get('/data_transaksi/{data_transaksi:slug}', [DataTransaksiController::class, 'show'])->name('data_transaksi.show');
 
-// jadwal 
+// jadwal
 Route::get('/jadwal', [JadwalController::class, 'index'])->name('jadwal.index');
 Route::post('/jadwal', [JadwalController::class, 'store'])->name('jadwal.store');
 
@@ -81,28 +81,33 @@ Route::post('/tabungan/store', [TabunganController::class, 'store'])->name('tabu
 
 //Admin
 Route::group(['namespace' => 'Admin', 'prefix' => 'admin', 'middleware' => ['auth']], function () {
-	Route::name('admin.')->group(function () {
-		Route::group(['namespace' => '\App\Http\Controllers'], function () {
-			Route::get('/', [AdminController::class, 'index'])->name('index')->middleware('can:role, "admin","guest"');
-			Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index')->middleware('can:role, "admin","guest"');
-			Route::get('/change-password', [ChangePasswordController::class, 'index'])->name('change-password.index')->middleware('can:role, "admin","guest"');
-		});
+    Route::name('admin.')->group(function () {
+        Route::group(['namespace' => '\App\Http\Controllers'], function () {
+            Route::get('/', [AdminController::class, 'index'])->name('index')->middleware('can:role, "admin","guest"');
+            Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index')->middleware('can:role, "admin","guest"');
+            Route::get('/change-password', [ChangePasswordController::class, 'index'])->name('change-password.index')->middleware('can:role, "admin","guest"');
+        });
 
-		//Resource Controller
-		Route::resource('users', 'UsersController')->middleware('can:role, "admin"');
-		Route::resource('admin.index', 'CountController')->middleware('can:role, "admin"');
-		Route::resource('pengumuman', 'PengumumanController')->middleware('can:role, "admin"');
-		Route::resource('data_transaksi', 'DataTransaksiController')->middleware('can:role, "admin"');
-		Route::resource('data_sampah', 'DataSampahController')->middleware('can:role, "admin"');
-		Route::resource('galeri', 'GaleriController')->middleware('can:role, "admin"');
-		Route::resource('kategori-artikel', 'KategoriArtikelController');
+        //Resource Controller
+        Route::resource('users', 'UsersController')->middleware('can:role, "admin"');
+        Route::resource('admin.index', 'CountController')->middleware('can:role, "admin"');
+        Route::resource('pengumuman', 'PengumumanController')->middleware('can:role, "admin"');
+        Route::resource('data_transaksi', 'DataTransaksiController')->middleware('can:role, "admin"');
+        Route::resource('data_sampah', 'DataSampahController')->middleware('can:role, "admin"');
+        Route::resource('galeri', 'GaleriController')->middleware('can:role, "admin"');
+        Route::resource('kategori-artikel', 'KategoriArtikelController');
 
-		// pendaftaran
-		Route::get('/pendaftaran', [PendaftaranNasabahController::class, 'index']);
-		Route::put('/pendaftaran/{id}', [PendaftaranNasabahController::class, 'validateUser']);
+        // pendaftaran
+        Route::get('/pendaftaran', [PendaftaranNasabahController::class, 'index']);
+        Route::put('/pendaftaran/{id}', [PendaftaranNasabahController::class, 'validateUser']);
 
-		// jadwal admin
-		Route::get('/jadwal', [GetJadwalController::class, 'index'])->name('jadwal.index');
-		Route::get('/jadwal/{id}', [GetJadwalController::class, 'show'])->name('jadwal.show');
-	});
+        // jadwal admin
+        Route::get('/jadwal', [GetJadwalController::class, 'index'])->name('jadwal.index');
+        Route::get('/jadwal/{id}', [GetJadwalController::class, 'show'])->name('jadwal.show');
+
+        // tabungan
+        Route::get('/saldoUser/{id}', [TabunganController::class, 'getSaldoUser']);
+        Route::get('/saldouser/{id}/cetak-resi', [TabunganController::class, 'cetak_withdrawn']);
+        Route::post('/saldoUser/tarik', [TabunganController::class, 'tarikSaldo']);
+    });
 });

@@ -68,4 +68,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(data_transaksi::class);
     }
+
+    public function total_saldo()
+    {
+        return $this->hasMany(SaldoNasabah::class, 'users_id', 'id');
+    }
 }
