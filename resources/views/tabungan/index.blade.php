@@ -27,8 +27,11 @@
     <!-- small box -->
     <div class="small-box bg-success">
       <div class="inner">
-        <h3>Rp {{number_format($saldoUser[0]->total_saldo[0]->total_saldo, 0,'','.')}}</h3>
-
+        @if ($saldoUser[0]->total_saldo->count() > 0)
+            <h3>Rp {{number_format($saldoUser[0]->total_saldo[0]->total_saldo, 0,'','.')}}</h3>
+        @else
+             <h3>Rp 0</h3>
+        @endif
         <p>Saldo {{Auth::user()->name}}</p>
       </div>
       <div class="icon">
@@ -245,7 +248,11 @@
                         <input type="hidden" name="users_id" value="{{Auth::user()->id}}">
                         <div class="form-group">
                             <label for="" id="label_jumlah_saldo">Sisa Saldo Anda</label>
-                            <input type="text" readonly class="form-control" value="{{number_format($saldoUser[0]->total_saldo[0]->total_saldo, 0,'','.')}}">
+                            @if ($saldoUser[0]->total_saldo->count() > 0)
+                                <input type="text" readonly class="form-control" value="{{number_format($saldoUser[0]->total_saldo[0]->total_saldo, 0,'','.')}}">
+                            @else
+                                <input type="text" readonly class="form-control" value="0">
+                            @endif
                         </div>
                         <div class="form-group">
                             <label for="">Jumlah Saldo Yang Akan di Tarik</label>

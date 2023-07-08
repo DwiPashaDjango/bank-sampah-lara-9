@@ -161,6 +161,10 @@ class TabunganController extends Controller
 
         $saldo = SaldoNasabah::with('user')->where('users_id', '=', $request->users_id)->first();
 
+        if (!$saldo) {
+            return redirect('/tabungan')->with(['failed' => 'Saldo Tabungan Kurang.']);
+        }
+
         if ($tarikSaldo > $saldo->total_saldo) {
             return redirect('/tabungan')->with(['failed' => 'Saldo Tabungan ' . $saldo->user->name . ' Kurang.']);
         }
